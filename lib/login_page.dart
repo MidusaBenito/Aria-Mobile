@@ -9,7 +9,8 @@ import 'package:ariaquickpay/utils.dart';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart';
-import 'package:local_auth/local_auth.dart';
+
+//import 'package:local_auth/local_auth.dart';//ACTIVATE FOR ANDROID
 import 'package:local_auth_ios/local_auth_ios.dart';
 import 'package:local_auth_platform_interface/local_auth_platform_interface.dart';
 import '/colors.dart' as mycolor;
