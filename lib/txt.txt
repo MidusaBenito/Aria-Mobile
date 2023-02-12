@@ -1,0 +1,968 @@
+import 'package:ariaquickpay/services_flutter.dart';
+import 'package:flutter/src/foundation/key.dart';
+import 'package:flutter/src/widgets/framework.dart';
+import 'dart:convert';
+import 'package:ariaquickpay/bills_profile.dart';
+import 'package:ariaquickpay/models/billers.dart';
+import 'package:ariaquickpay/models/category.dart';
+import 'package:ariaquickpay/models/models.dart';
+import 'package:ariaquickpay/utils.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_credit_card/credit_card_widget.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+
+import 'aria_providers.dart';
+import 'urls.dart' as myurls;
+import 'colors.dart' as mycolor;
+import 'package:badges/badges.dart';
+import 'my_widgets.dart';
+import 'dart:io';
+import 'package:flutter_stripe/flutter_stripe.dart';
+
+class selectCards extends StatelessWidget {
+  selectCards({
+    Key? key,
+    required this.paidAmnt,
+  }) : super(key: key);
+  final String paidAmnt;
+  final List cards = [
+    {
+      'cardNumber': '4242424242434242',
+      'expiryDate': '10/22',
+      'cardHolderName': 'Kaura Jerim',
+      'cvvCode': '424',
+      'showBackView': false,
+    },
+    {
+      'cardNumber': '55555345966554444',
+      'expiryDate': '02/25',
+      'cardHolderName': 'Jerim Kaura',
+      'cvvCode': '123',
+      'showBackView': false,
+    }
+  ];
+
+  Map<String, dynamic>? paymentIntent;
+  String SECRET_KEY =
+      "sk_test_51KhALyCldFfAXs7m9rWzmtbH4Eoz4dQDoUj7aJFp8dOgTNcR5IwOf8UnH8j4SAAPm6rbUn7Tw6YNg835GbquFTZt00k7WxXoBe";
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        height: double.infinity,
+        width: double.infinity,
+        alignment: Alignment.center,
+        child: Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromRGBO(94, 167, 203, 1),
+                    Color.fromRGBO(94, 167, 203, 1),
+                  ],
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 45,
+                    ),
+                    Row(
+                      children: [
+                        BackButton(
+                          color: Colors.white,
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                        SizedBox(
+                          width: 10,
+                        ),
+                        Text(
+                          "CHOOSE CARD",
+                          style: TextStyle(
+                              color: Color.fromRGBO(238, 236, 236, 1),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 15,
+                        ),
+                        //Text(billerName),
+                        Expanded(child: Container()),
+                        //Text('Bill Due On: '),
+                        SizedBox(
+                          width: 15,
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color.fromRGBO(238, 236, 236, 1),
+                      Color.fromRGBO(238, 236, 236, 1),
+                    ],
+                  ),
+                ),
+                width: double.infinity,
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                  child: ListView.builder(
+                      itemCount: cards.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        var card = cards[index];
+                        return InkWell(
+                          onTap: () {
+                            //choseExistingCard(context, card);
+                            makePayment(context);
+                          },
+                          child: CreditCardWidget(
+                            cardNumber: card['cardNumber'],
+                            expiryDate: card['expiryDate'],
+                            cardHolderName: card['cardHolderName'],
+                            cvvCode: card['cvvCode'],
+                            showBackView: false,
+                            onCreditCardWidgetChange: (CreditCardBrand) {},
+                          ),
+                        );
+                      }),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> makePayment(context) async {
+    try {
+      paymentIntent = await createPaymentIntent(paidAmnt, 'USD');
+      //Payment Sheet
+      await Stripe.instance
+          .initPaymentSheet(
+              paymentSheetParameters: SetupPaymentSheetParameters(
+                  paymentIntentClientSecret: paymentIntent!['client_secret'],
+                  // applePay: PaymentSheetApplePay(
+                  //merchantCountryCode: 'US',
+                  // ),
+                  googlePay: PaymentSheetGooglePay(
+                    merchantCountryCode: 'US',
+                    testEnv: true,
+                  ),
+                  style: ThemeMode.dark,
+                  merchantDisplayName: 'Ariaquickpay',
+                  allowsDelayedPaymentMethods: true))
+          .then((value) {});
+
+      ///now finally display payment sheeet
+      displayPaymentSheet(context);
+    } catch (e, s) {
+      print('exception:$e$s');
+    }
+  }
+
+  displayPaymentSheet(context) async {
+    try {
+      await Stripe.instance.presentPaymentSheet().then((value) {
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                          ),
+                          Text("Payment Successfull"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ));
+        // ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("paid successfully")));
+
+        paymentIntent = null;
+      }).onError((error, stackTrace) {
+        print('Error is:--->$error $stackTrace');
+      });
+    } on StripeException catch (e) {
+      print('Error is:---> $e');
+      showDialog(
+          context: context,
+          builder: (_) => const AlertDialog(
+                content: Text("Cancelled "),
+              ));
+    } catch (e) {
+      print('$e');
+    }
+  }
+
+  //  Future<Map<String, dynamic>>
+  createPaymentIntent(String amount, String currency) async {
+    try {
+      Map<String, dynamic> body = {
+        'amount': calculateAmount(amount),
+        'currency': currency,
+        'payment_method_types[]': 'card',
+
+        //'payment_method_types': ['card'],
+      };
+
+      var response = await http.post(
+        Uri.parse('https://api.stripe.com/v1/payment_intents'),
+        headers: {
+          'Authorization': 'Bearer $SECRET_KEY',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: body,
+      );
+      // ignore: avoid_print
+      print('Payment Intent Body->>> ${response.body.toString()}');
+      return jsonDecode(response.body);
+    } catch (err) {
+      // ignore: avoid_print
+      print('err charging user: ${err.toString()}');
+    }
+  }
+
+  calculateAmount(String amount) {
+    final calculatedAmout = (int.parse(amount)) * 100;
+    return calculatedAmout.toString();
+  }
+}
+
+
+child: Text(
+        "\$ $balanceWallet",
+        style: TextStyle(
+            fontSize: colString == 'blue' ? 18 : 15,
+            fontWeight: FontWeight.w500,
+            color: colString == 'blue'
+                ? Color.fromRGBO(94, 167, 203, 1)
+                : Color.fromARGB(255, 255, 255, 255)),
+      )
+
+
+                      Column(
+                          children: [
+                            SizedBox(
+                              height: 10,
+                            ),
+                            Row(
+                              children: [
+                                Text("Overview"),
+                              ],
+                            ),
+                            Expanded(child: Container()),
+                            Card(
+                              color: Colors.white,
+                              elevation: 2.0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20.0)),
+                              child: Container(
+                                height: 150,
+                                width: MediaQuery.of(context).size.width,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 15.0),
+                                  child: Row(
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                          Text(
+                                            "Total Paid",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                          Text(
+                                            "\$ 0.00",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 20,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                          //
+                                          Expanded(child: Container()),
+                                          GestureDetector(
+                                            onTap: () {},
+                                            child: Row(
+                                              children: [
+                                                Icon(IconData(0xf845,
+                                                    fontFamily: 'MaterialIcons',
+                                                    matchTextDirection: true)),
+                                                SizedBox(
+                                                  width: 5,
+                                                ),
+                                                Text("View"),
+                                              ],
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                        ],
+                                      ),
+                                      Expanded(
+                                        child: Container(),
+                                      ),
+                                      Column(
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                backgroundColor: Color.fromRGBO(
+                                                    94, 167, 203, 1),
+                                                radius: 15,
+                                                child: Icon(
+                                                  IconData(0xe156,
+                                                      fontFamily:
+                                                          'MaterialIcons'),
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: 5,
+                                              ),
+                                              CircleAvatar(
+                                                backgroundColor: Color.fromRGBO(
+                                                    94, 167, 203, 1),
+                                                radius: 15,
+                                                child: Icon(
+                                                  IconData(0xe156,
+                                                      fontFamily:
+                                                          'MaterialIcons'),
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Container()),
+                            //second card
+                            Card(
+                              color: Colors.white,
+                              elevation: 2.0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20.0)),
+                              child: Container(
+                                height: 150,
+                                width: MediaQuery.of(context).size.width,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 15.0),
+                                  child: Row(
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                          Text(
+                                            "Last Month",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                          Text(
+                                            "\$ 0.00",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 20,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                          Expanded(child: Container()),
+                                          GestureDetector(
+                                            onTap: () {},
+                                            child: Row(
+                                              children: [
+                                                Icon(IconData(0xf845,
+                                                    fontFamily: 'MaterialIcons',
+                                                    matchTextDirection: true)),
+                                                SizedBox(
+                                                  width: 5,
+                                                ),
+                                                Text("View"),
+                                              ],
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                        ],
+                                      ),
+                                      Expanded(
+                                        child: Container(),
+                                      ),
+                                      Column(
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                backgroundColor: Color.fromRGBO(
+                                                    94, 167, 203, 1),
+                                                radius: 15,
+                                                child: Icon(
+                                                  IconData(0xe156,
+                                                      fontFamily:
+                                                          'MaterialIcons'),
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Container()),
+                            //third card
+                            Card(
+                              color: Colors.white,
+                              elevation: 2.0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20.0)),
+                              child: Container(
+                                height: 150,
+                                width: MediaQuery.of(context).size.width,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 15.0),
+                                  child: Row(
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                          Text(
+                                            "Pending Bills",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                          Text(
+                                            "\$ 0.00",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 20,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                          Expanded(child: Container()),
+                                          GestureDetector(
+                                            onTap: () {},
+                                            child: Row(
+                                              children: [
+                                                Icon(IconData(0xf845,
+                                                    fontFamily: 'MaterialIcons',
+                                                    matchTextDirection: true)),
+                                                SizedBox(
+                                                  width: 5,
+                                                ),
+                                                Text("View"),
+                                              ],
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                        ],
+                                      ),
+                                      Expanded(
+                                        child: Container(),
+                                      ),
+                                      Column(
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                backgroundColor: Color.fromRGBO(
+                                                    94, 167, 203, 1),
+                                                radius: 15,
+                                                child: Icon(
+                                                  IconData(0xe072,
+                                                      fontFamily:
+                                                          'MaterialIcons'),
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Container()),
+                          ],
+                        )
+
+
+
+                        class notificationCard extends StatefulWidget {
+  const notificationCard(
+      {Key? key, required this.itemType, required this.client})
+      : super(key: key);
+  final String itemType;
+  final Client client;
+
+  @override
+  State<notificationCard> createState() => _notificationCardState();
+}
+
+class _notificationCardState extends State<notificationCard> {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List>(
+      future: widget.itemType == 'message'
+          ? getMyMessages(widget.client)
+          : getMyNotifications(widget.client),
+      builder: (context, snapshot) {
+        var ItemsToDisplay = snapshot.data ?? [];
+        return Container(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Hero(
+                tag: 'Notifications Pop Up',
+                createRectTween: (begin, end) {
+                  return CustomRectTween(begin: begin!, end: end!);
+                },
+                child: Material(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32)),
+                  child: Expanded(
+                    child: ListView.builder(
+                      physics: BouncingScrollPhysics(),
+                      itemCount: ItemsToDisplay.length,
+                      itemBuilder: (context, index) {
+                        var notificationItem = ItemsToDisplay[index];
+                        switch (snapshot.connectionState) {
+                          case ConnectionState.waiting:
+                            return Container(
+                              child: Column(
+                                children: [
+                                  Expanded(child: Container()),
+                                  Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                  Expanded(child: Container()),
+                                ],
+                              ),
+                            );
+                          default:
+                            if (snapshot.hasError) {
+                              return Column(
+                                children: [
+                                  Expanded(child: Container()),
+                                  Center(
+                                    child: Text('Error loading notifications!'),
+                                  ),
+                                  Expanded(child: Container()),
+                                ],
+                              );
+                            } else {
+                              return Container(
+                                child: Column(
+                                  children: [
+                                    Card(
+                                      color: Colors.white,
+                                      elevation: 2.0,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(5.0)),
+                                      child: Container(
+                                        width:
+                                            MediaQuery.of(context).size.width,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 15.0,
+                                            vertical: 20,
+                                          ),
+                                          child: Row(children: [
+                                            Expanded(
+                                              child: widget.itemType ==
+                                                      'message'
+                                                  ? Text(
+                                                      notificationItem
+                                                          .myMessages,
+                                                      style: TextStyle(
+                                                        color: Color.fromARGB(
+                                                            255, 2, 83, 123),
+                                                      ),
+                                                    )
+                                                  : Text(
+                                                      notificationItem
+                                                          .myNotifications,
+                                                      style: TextStyle(
+                                                        color: Colors.amber,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ]),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                        }
+                      },
+                    ),
+                  ),
+                )),
+          ),
+        );
+      },
+    );
+  }
+}
+
+
+
+Card(
+                color: Colors.white,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0)),
+                child: Container(
+                  //alignment: Alignment.bottomCenter,
+                  padding: EdgeInsets.symmetric(horizontal: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    image: DecorationImage(
+                      //scale: 1.5,
+                      image: NetworkImage(
+                          myurls.AriaApiEndpoints.imageBase + biller.logo_url),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        biller.biller_name,
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Color.fromARGB(255, 2, 94, 30),
+                            fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(
+                        height: 5,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+
+              import 'dart:collection';
+
+import 'package:table_calendar/table_calendar.dart';
+
+/// Example event class.
+class Event {
+  final String title;
+
+  const Event(this.title);
+
+  @override
+  String toString() => title;
+}
+
+/// Example events.
+///
+/// Using a [LinkedHashMap] is highly recommended if you decide to use a map.
+final kEvents = LinkedHashMap<DateTime, List<Event>>(
+  equals: isSameDay,
+  hashCode: getHashCode,
+)..addAll(_kEventSource);
+
+final _kEventSource = Map.fromIterable(List.generate(50, (index) => index),
+    key: (item) => DateTime.utc(kFirstDay.year, kFirstDay.month, item * 5),
+    value: (item) => List.generate(
+        item % 4 + 1, (index) => Event('Event $item | ${index + 1}')))
+  ..addAll({
+    kToday: [
+      Event('Today\'s Event 1'),
+      Event('Today\'s Event 2'),
+    ],
+  });
+
+int getHashCode(DateTime key) {
+  return key.day * 1000000 + key.month * 10000 + key.year;
+}
+
+/// Returns a list of [DateTime] objects from [first] to [last], inclusive.
+List<DateTime> daysInRange(DateTime first, DateTime last) {
+  final dayCount = last.difference(first).inDays + 1;
+  return List.generate(
+    dayCount,
+    (index) => DateTime.utc(first.year, first.month, first.day + index),
+  );
+}
+
+final kToday = DateTime.now();
+final kFirstDay = DateTime(kToday.year, kToday.month - 3, kToday.day);
+final kLastDay = DateTime(kToday.year, kToday.month + 3, kToday.day);
+
+
+[Event(json.decode(item)["biller_name"])]
+
+
+biller_date_response.forEach((billData) {
+              if (json.decode(billData).containsKey(element.next_due)) {
+                json.decode(billData).biller_name.add(element.biller_name);
+              } else {
+                billName.add(element.biller_name);
+              }
+            });
+
+
+else {
+              biller_date_response.forEach((billData) {
+                if (json.decode(billData)["due_date"] == element.next_due) {
+                  
+                  json.decode(billData).biller_name.add(element.biller_name);
+                } else {
+                  billName.add(element.biller_name);
+                  Map<String, dynamic> billMap = {
+                    //element.next_due: element.biller_name
+                    "due_date": element.next_due,
+                    "biller_name": billName,
+                  };
+                  //billName = [];
+                  biller_date_response.add(json.encode(billMap));
+                }
+              });
+            }
+
+
+
+if (itemsAdded == false) {
+              billName.add(element.biller_name);
+              Map<String, dynamic> billMap = {
+                //element.next_due: element.biller_name
+                "due_date": element.next_due,
+                "biller_name": billName,
+              };
+              //billName = [];
+              biller_date_response.add(json.encode(billMap));
+              itemsAdded = true;
+              //print('added!');
+            } else {
+              biller_date_response.forEach((billData) {
+                print(
+                    "yes ${json.decode(billData)["due_date"]} : ${element.next_due}");
+                if (json.decode(billData)["due_date"] == element.next_due) {
+                  billName = json.decode(billData)["biller_name"];
+                  //json.decode(billData)["biller_name"].add(element.biller_name);
+                  billName.add(element.biller_name);
+                  print("Hey $billName");
+                } else {
+                  print("no $billData");
+                  //billName.add(element.biller_name);
+                  //Map<String, dynamic> billMap = {
+                  //element.next_due: element.biller_name
+                  //"due_date": element.next_due,
+                  //"biller_name": billName,
+                  //};
+                  //billName = [];
+                  //biller_date_response.add(json.encode(billMap));
+                }
+              });
+              //here is why updation needs to happen
+            }
+
+  List<String> billName = [];
+          int myIndex = 0;
+          if (element.due_date_set == true) {
+            if (itemsAdded == false) {
+              billName.add(element.biller_name);
+              Map<String, dynamic> billMap = {
+                //element.next_due: element.biller_name
+                "due_date": element.next_due,
+                "biller_name": billName,
+              };
+              //billName = [];
+              biller_date_response.add(json.encode(billMap));
+              itemsAdded = true;
+              //print('added!');
+            } else {
+              var myData = {};
+              for (int i = 0; i < biller_date_response.length; i++) {
+                myData = json.decode(biller_date_response[i]);
+                //print("hey $myData");
+                if (myData["due_date"] == element.next_due) {
+                  myIndex = i;
+                  billName = myData["biller_name"].cast<String>();
+                  print('count me!');
+                  billName.add(element.biller_name);
+
+                  print(billName);
+                  myData["due_date"] = billName;
+                  biller_date_response[i] = json.encode(myData);
+                } else {
+                  billName.add(element.biller_name);
+
+                  Map<String, dynamic> billMap = {
+                    //element.next_due: element.biller_name
+                    "due_date": element.next_due,
+                    "biller_name": billName,
+                  };
+
+                  //billName = [];
+                  biller_date_response.add(json.encode(billMap));
+                  print('doing fine');
+                  print(biller_date_response);
+                }
+              }
+              //updating biller_date_response happens here
+              //var newList = json.decode(biller_date_response);
+            }
+          }
+
+
+
+           for (int i = 0; i < myIndex; i++) {
+                myData = json.decode(biller_date_response[i]);
+                print("Hey ${myData["due_date"]}: ${element.next_due}");
+                if (myData["due_date"] == element.next_due) {
+                  //myIndex = i;
+                  //print("myIndex $myIndex");
+                  billName = myData["biller_name"].cast<String>();
+                  print('count me!');
+                  billName.add(element.biller_name);
+                  print("Hey $billName");
+                  json.decode(biller_date_response[myIndex])["biller_name"] =
+                      billName;
+                  myData = {};
+                  //myIndex += 1;
+                  //break;
+                } else {
+                  print("index $i");
+                  billName.add(element.biller_name);
+
+                  Map<String, dynamic> billMap = {
+                    //element.next_due: element.biller_name
+                    "due_date": element.next_due,
+                    "biller_name": billName,
+                  };
+
+                  //billName = [];
+                  biller_date_response.add(json.encode(billMap));
+                  //print('doing fine');
+                  print(biller_date_response.length);
+                  myData = {};
+                  //myIndex += 1;
+                  //break;
+                }
+              }
+
+
+              final _kEventSource = Map.fromIterable(
+    UserSimplePreferences.getUserBillerProfile() ?? [],
+    key: (item) => DateTime.utc(
+        DateTime.parse(json.decode(item)["due_date"]).year,
+        DateTime.parse(json.decode(item)["due_date"]).month,
+        DateTime.parse(json.decode(item)["due_date"]).day),
+    value: (item) {
+      return List.generate(2, (index) {
+        return Event(json.decode(item)["biller_name"]);
+      });
+    });
+
+     ListTile(
+                                                  //onTap: () => print('${value[index]}'),
+                                                  title: Text(
+                                                    '${value[index]}',
+                                                    style:
+                                                        TextStyle(fontSize: 12),
+                                                  ),
+                                                ),
+
+
+
+Text(
+                                            'www.ariaquickpay.com/how-it-works/',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.blue),
+                                          ),
+
+
+             Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Mobile Number:"),
+                                    TextFormField(
+                                      maxLength: 15,
+                                    ),
+                                  ],
+                                ),
+                              ),
