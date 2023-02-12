@@ -8,7 +8,7 @@ import 'package:ariaquickpay/models/billers.dart';
 import 'package:ariaquickpay/models/category.dart';
 import 'package:ariaquickpay/models/models.dart';
 import 'package:ariaquickpay/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_credit_card/credit_card_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';

@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 
 /// {@template hero_dialog_route}
 /// Custom [PageRoute] that creates an overlay dialog (popup effect).

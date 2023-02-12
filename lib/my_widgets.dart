@@ -14,7 +14,8 @@ import 'package:ariaquickpay/manage_profile.dart';
 import 'package:ariaquickpay/overview_breakdown.dart';
 import 'package:ariaquickpay/payments.dart';
 import 'package:ariaquickpay/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
+import 'package:badges/src/badge.dart' as badges;
 import 'package:http/http.dart';
 import 'urls.dart' as myurls;
 import 'colors.dart' as mycolor;
@@ -44,7 +45,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.only(
             top: 8,
           ),
-          child: Badge(
+          child: badges.Badge(
             badgeContent: FutureBuilder<List>(
               future: getMyMessages(client, 'getCount'),
               builder: (context, snapshot) {
@@ -58,7 +59,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
                     );
                   default:
                     if (snapshot.hasError) {
-                      print(snapshot.error);
+                      //print(snapshot.error);
                       return Text(
                         '0',
                         style: TextStyle(
@@ -105,7 +106,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         Padding(
           padding: const EdgeInsets.only(top: 8, right: 5),
-          child: Badge(
+          child: badges.Badge(
             badgeContent: FutureBuilder<List>(
               future: getMyNotifications(client, 'getCount'),
               builder: (context, snapshot) {

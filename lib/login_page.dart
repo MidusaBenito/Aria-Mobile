@@ -6,7 +6,7 @@ import 'dart:ui';
 import 'package:ariaquickpay/finger_print_auth.dart';
 import 'package:ariaquickpay/registration_succesful.dart';
 import 'package:ariaquickpay/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart';
 import 'package:local_auth/local_auth.dart';

@@ -1,7 +1,7 @@
 import 'package:ariaquickpay/coming_soon.dart';
 import 'package:ariaquickpay/proceed_to_plaid.dart';
 import 'package:ariaquickpay/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart';
 import 'urls.dart' as myurls;

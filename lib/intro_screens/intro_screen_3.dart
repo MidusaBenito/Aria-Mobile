@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:http/http.dart';
 import 'package:http/http.dart' as http;
 import '/colors.dart' as mycolor;

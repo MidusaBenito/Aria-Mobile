@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:ariaquickpay/models/models.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:provider/provider.dart';
 import 'urls.dart' as myurls;
 import 'utils.dart';

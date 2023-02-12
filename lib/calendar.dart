@@ -6,7 +6,7 @@ import 'package:ariaquickpay/add_billers.dart';
 import 'package:ariaquickpay/make_payments.dart';
 import 'package:ariaquickpay/models/models.dart';
 import 'package:ariaquickpay/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:http/http.dart';
 import 'package:provider/provider.dart';
 import 'edit_biller.dart';

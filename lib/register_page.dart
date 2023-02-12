@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 //import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'urls.dart' as myurls;
