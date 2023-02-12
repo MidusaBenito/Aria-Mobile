@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:local_auth_ios/local_auth_ios.dart';
+import 'package:local_auth_platform_interface/local_auth_platform_interface.dart';
 
 class LocalAuthApi {
   static final _auth = LocalAuthentication();
